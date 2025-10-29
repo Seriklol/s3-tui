@@ -1,0 +1,28 @@
+[package]
+name = "s3-tui"
+version = "0.1.0"
+description = "S3 browser"
+authors = ["Seriklol"]
+license = "GPL-3"
+edition = "2024"
+
+[dependencies]
+crossterm = { version = "0.29.0", features = ["event-stream"] }
+ratatui = "0.29.0"
+color-eyre = "0.6.3"
+aws-sdk-s3 = { version = "1.108.0", features = ["rt-tokio"] }
+keyring = { version = "3.6.3", features = ["apple-native", "windows-native", "linux-native-sync-persistent"] }
+users = "0.11.0"
+bendy = { version = "0.6.0", features = ["std", "serde"] }
+serde = { version = "1.0.228", features = ["derive"] }
+aws-config = "1.8.10"
+tokio = { version = "1.48.0", features = ["full"] }
+anyhow = "1.0.100"
+directories = "6.0.0"
+indextree = "4.7.4"
+futures = "0.3.31"
+indexmap = "2.12.0"
+bytesize = "2.2.0"
+chrono = "0.4.42"
+aws-smithy-types-convert = { version = "0.60.10", features = ["convert-chrono"] }
+tui-textarea = "0.7.0"
