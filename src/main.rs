@@ -7,11 +7,11 @@ pub mod utils;
 
 use crate::app::App;
 
-async fn main_async() -> color_eyre::Result<()> {
+async fn main_async() -> anyhow::Result<()> {
     App::default().run().await
 }
 
-fn main() -> color_eyre::Result<()> {
+fn main() -> anyhow::Result<()> {
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .worker_threads(4)
         .thread_stack_size(8 * 1024 * 1024)

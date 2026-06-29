@@ -25,14 +25,14 @@ pub struct App {
 }
 
 impl App {
-    pub async fn run(mut self) -> color_eyre::Result<()> {
+    pub async fn run(mut self) -> anyhow::Result<()> {
         self.running = true;
         let mut terminal = ratatui::init();
         let mut reader = EventStream::new();
         let (tx_input, mut rx_process_input) = mpsc::channel::<Event>(8);
         let (tx_s3, mut rx_process_s3) = mpsc::unbounded_channel::<S3Update>();
 
-        let input_task: tokio::task::JoinHandle<color_eyre::Result<()>> =
+        let input_task: tokio::task::JoinHandle<anyhow::Result<()>> =
             tokio::spawn(async move {
                 while let Some(Ok(event)) = reader.next().await {
                     match event {
