@@ -8,7 +8,7 @@ A small terminal user interface for managing buckets and objects in S3 compatibl
 
 ```sh
 git clone https://github.com/Seriklol/s3-tui.git
-cd s3-tui && makepkg -si
+cd s3-tui && makepkg -sic
 ```
 
 ## Features
