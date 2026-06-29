@@ -1,6 +1,6 @@
-use crate::app::{FileProgress, FileUpdate, S3Update};
+use crate::events::{FileProgress, FileUpdate, S3Update};
 use anyhow::anyhow;
-use aws_sdk_s3::error::ProvideErrorMetadata;
+use aws_sdk_s3::error::{DisplayErrorContext, ProvideErrorMetadata};
 use aws_sdk_s3::operation::head_object::HeadObjectOutput;
 use aws_sdk_s3::primitives::{ByteStream, Length};
 use aws_sdk_s3::types::{CompletedMultipartUpload, CompletedPart, MultipartUpload, Object};
@@ -49,7 +49,8 @@ pub async fn list_buckets(client: &Client) -> anyhow::Result<Vec<String>>{
     let buckets = client
         .list_buckets()
         .send()
-        .await?
+        .await
+        .map_err(|err| anyhow!("Could not list buckets: {}", DisplayErrorContext(&err)))?
         .buckets
         .unwrap_or_default()
         .iter()
@@ -70,7 +71,7 @@ pub async fn list_objects(client: &Client, bucket: &str) -> anyhow::Result<S3Obj
     let mut all_objects: Vec<Object> = vec![];
     while let Some(result) = objects_resp.next().await {
         if let Some(mut objects) = result
-            .map_err(|err| anyhow!("Could not get objects: {}", err.message().unwrap_or("")))?
+            .map_err(|err| anyhow!("Could not get objects: {}", DisplayErrorContext(&err)))?
             .contents
         {
             all_objects.append(&mut objects)
@@ -83,13 +84,10 @@ pub async fn list_objects(client: &Client, bucket: &str) -> anyhow::Result<S3Obj
         .send()
         .await
         .map_err(|err| {
-            anyhow!(
-                "Could not get unfinished uploads: {}",
-                err.message().unwrap_or("fuck")
-            )
+            anyhow!("Could not get unfinished uploads: {}", DisplayErrorContext(&err))
         })?
         .uploads
-        .unwrap_or_else(|| vec![]);
+        .unwrap_or_default();
 
     Ok(S3ObjectsList {
         bucket: String::from(bucket),
@@ -105,12 +103,11 @@ pub async fn download_object(
     tx: &UnboundedSender<S3Update>,
 ) {
     if let Err(err) = download(client, key, bucket, tx).await {
-        tx.send(S3Update::DownloadProgress(FileUpdate::new(
+        let _ = tx.send(S3Update::DownloadProgress(FileUpdate::new(
             bucket.to_string(),
             key.into(),
             Err(err),
-        )))
-        .unwrap();
+        )));
     }
 }
 
@@ -230,12 +227,11 @@ pub async fn upload_object(
     tx: &UnboundedSender<S3Update>,
 ) {
     if let Err(err) = upload(client, bucket, key, path, tx).await {
-        tx.send(S3Update::UploadProgress(FileUpdate::new(
+        let _ = tx.send(S3Update::UploadProgress(FileUpdate::new(
             bucket.to_string(),
             key.into(),
             Err(err),
-        )))
-        .unwrap();
+        )));
     }
 }
 

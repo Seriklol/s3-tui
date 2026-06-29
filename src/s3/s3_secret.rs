@@ -4,6 +4,8 @@ use bendy::serde::from_bytes;
 use keyring::Entry;
 use serde::{Deserialize, Serialize};
 
+const KEYRING_SERVICE: &str = "rust-s3-tui";
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct S3Secret {
     pub profiles: Vec<S3Profile>,
@@ -16,7 +18,7 @@ impl S3Secret {
             Some(name) => Ok(name),
         }?;
         let user = user.to_string_lossy();
-        let entry = Entry::new("rust-s3-tui", &user)?
+        let entry = Entry::new(KEYRING_SERVICE, &user)?
             .get_secret()
             .unwrap_or_default();
 
@@ -30,7 +32,7 @@ impl S3Secret {
         }?;
 
         let user = user.to_string_lossy();
-        let entry = Entry::new("rust-s3-explorer", &user)?;
+        let entry = Entry::new(KEYRING_SERVICE, &user)?;
         let bytes = bendy::serde::to_bytes(self)?;
 
         Ok(entry.set_secret(&bytes)?)

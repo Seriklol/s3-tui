@@ -4,6 +4,7 @@ use crate::utils::{centered_area, DEFAULT_STYLE, LIST_HIGHLIGHT_STYLE};
 use crate::widgets::profiles::edit_profile_widget::EditProfileWidget;
 use crate::widgets::profiles::new_profile_widget::NewProfileWidget;
 use anyhow::anyhow;
+use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Alignment, Constraint, Rect};
 use ratatui::prelude::{Line, StatefulWidget, Text, Widget};
@@ -19,7 +20,7 @@ impl Default for ProfilesWidget<'_> {
     fn default() -> Self {
         Self {
             window: Default::default(),
-            secret: S3Secret::from_keyring().unwrap(),
+            secret: S3Secret::from_keyring().unwrap_or(S3Secret { profiles: vec![] }),
         }
     }
 }
@@ -46,6 +47,69 @@ impl ProfilesWidget<'_> {
         };
 
         Ok(())
+    }
+}
+
+impl ProfilesWidget<'_> {
+    pub fn handle_key(&mut self, key: KeyEvent) -> anyhow::Result<Option<S3Profile>> {
+        use CurrentProfilesWindow::*;
+        match &mut self.window {
+            ProfileSelection(selection) => match key.code {
+                KeyCode::Char('n') => {
+                    self.window = NewProfile(NewProfileWidget::default());
+                }
+                KeyCode::Char('e') => {
+                    if let Some(ind) = selection.selected() {
+                        let profile = self.secret.profiles.get(ind)
+                            .ok_or(anyhow!("Could not get profile"))?.clone();
+                        self.window = EditProfile(EditProfileWidget::new(ind, profile));
+                    }
+                }
+                KeyCode::Delete => {
+                    if let Some(ind) = selection.selected() {
+                        self.window = DeleteProfileConfirmation(ind);
+                    }
+                }
+                KeyCode::Down => selection.select_next(),
+                KeyCode::Up => selection.select_previous(),
+                KeyCode::Enter => {
+                    if let Some(ind) = selection.selected() {
+                        return Ok(Some(self.secret.profiles[ind].clone()));
+                    }
+                }
+                _ => {}
+            },
+            NewProfile(new_profile) => match key.code {
+                KeyCode::Esc => self.window = ProfileSelection(ListState::default()),
+                KeyCode::Down => new_profile.info.select_next(),
+                KeyCode::Up => new_profile.info.select_previous(),
+                KeyCode::Enter => {
+                    self.try_save_profile()?;
+                    self.window = ProfileSelection(ListState::default());
+                }
+                _ => { new_profile.info.edit_current_field(key); }
+            },
+            EditProfile(edit_profile) => match key.code {
+                KeyCode::Esc => self.window = ProfileSelection(ListState::default()),
+                KeyCode::Down => edit_profile.info.select_next(),
+                KeyCode::Up => edit_profile.info.select_previous(),
+                KeyCode::Enter => {
+                    self.try_save_profile()?;
+                    self.window = ProfileSelection(ListState::default());
+                }
+                _ => { edit_profile.info.edit_current_field(key); }
+            },
+            DeleteProfileConfirmation(delete_ind) => match key.code {
+                KeyCode::Char('y') => {
+                    self.secret.profiles.remove(*delete_ind);
+                    self.secret.save()?;
+                    self.window = ProfileSelection(ListState::default());
+                }
+                KeyCode::Char('n') => self.window = ProfileSelection(ListState::default()),
+                _ => {}
+            },
+        }
+        Ok(None)
     }
 }
 

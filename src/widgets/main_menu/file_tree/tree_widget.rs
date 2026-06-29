@@ -91,9 +91,9 @@ impl TreeWidget {
         if let Some(tree) = self.tree.as_mut() {
             tree.selected = match tree.selected {
                 None => tree.flattened.get_index(0).copied(),
-                Some(node_id) => {
-                    let ind = tree.flattened.get_index_of(&node_id).unwrap();
-                    Some(tree.flattened[ind.saturating_sub(1)])
+                Some(node_id) => match tree.flattened.get_index_of(&node_id) {
+                    None => tree.flattened.get_index(0).copied(),
+                    Some(ind) => Some(tree.flattened[ind.saturating_sub(1)]),
                 }
             };
         }
@@ -105,9 +105,9 @@ impl TreeWidget {
                 None => tree.flattened.get_index(0).copied(),
                 Some(index) => match tree.flattened.len() {
                     0 => None,
-                    _ => {
-                        let ind = tree.flattened.get_index_of(&index).unwrap();
-                        Some(tree.flattened[(ind + 1).clamp(0, tree.flattened.len() - 1)])
+                    _ => match tree.flattened.get_index_of(&index) {
+                        None => tree.flattened.get_index(0).copied(),
+                        Some(ind) => Some(tree.flattened[(ind + 1).clamp(0, tree.flattened.len() - 1)]),
                     }
                 },
             };
@@ -170,7 +170,8 @@ impl Widget for &mut TreeWidget {
 
                 let list = List::new(tree.flattened.iter().map(|node_id| {
                     let offset = node_id.ancestors(&tree.arena).count();
-                    let node = tree.arena.get(*node_id).unwrap().get();
+                    let Some(node_data) = tree.arena.get(*node_id) else { return ListItem::from(""); };
+                    let node = node_data.get();
                     let prefix = match node.node_type {
                         Dir(Open(open)) => {
                             let mut pref = " ".repeat(offset - 1);

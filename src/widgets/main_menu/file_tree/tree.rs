@@ -26,13 +26,13 @@ impl Tree {
                 .map(|s| s.to_string())
                 .filter(|s| !s.is_empty())
                 .collect::<Vec<String>>();
-            let is_dir = object.key().unwrap().ends_with('/');
+            let is_dir = key.ends_with('/');
             let mut curr_root = root;
 
             for (ind, path_part) in path.iter().enumerate() {
                 match curr_root
                     .children(&arena)
-                    .find(|p| arena.get(*p).unwrap().get().name == *path_part)
+                    .find(|p| arena.get(*p).is_some_and(|n| n.get().name == *path_part))
                 {
                     None => {
                         let is_last = ind == path.len() - 1;
@@ -69,8 +69,7 @@ impl Tree {
     pub fn get_path(&self, node_id: &NodeId) -> String {
         let mut path = node_id
             .ancestors(&self.arena)
-            .map(|a| &self.arena.get(a).unwrap().get().name)
-            .cloned()
+            .filter_map(|a| self.arena.get(a).map(|n| n.get().name.clone()))
             .collect::<Vec<_>>();
         path.reverse();
 
@@ -93,7 +92,7 @@ impl Tree {
     }
 
     fn get_open_dirs_and_files(arena: &Arena<TreeNode>, curr_node: NodeId) -> Vec<NodeId> {
-        let node = arena.get(curr_node).unwrap();
+        let Some(node) = arena.get(curr_node) else { return vec![]; };
         let mut root = vec![curr_node];
         if let Dir(Open(true)) = node.get().node_type {
             let mut nodes = curr_node

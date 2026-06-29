@@ -1,5 +1,6 @@
 mod app;
 mod app_state;
+pub mod events;
 mod s3;
 mod widgets;
 pub mod utils;

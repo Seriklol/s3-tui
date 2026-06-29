@@ -176,11 +176,8 @@ impl UnfinishedUploadsListState {
     pub fn new(bucket: String, list: Vec<MultipartUpload>) -> Self {
         let mut map = IndexMap::with_capacity(list.len());
         list.iter().for_each(|upload| {
-            if map
-                .insert(upload.key.clone().unwrap(), upload.clone())
-                .is_some()
-            {
-                panic!("Duplicate key: {}", upload.key.clone().unwrap());
+            if let Some(key) = upload.key.clone() {
+                map.entry(key).or_insert_with(|| upload.clone());
             }
         });
         Self {
