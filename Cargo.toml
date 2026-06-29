@@ -22,6 +22,5 @@ indextree = "4.7.4"
 futures = "0.3.31"
 indexmap = "2.12.0"
 bytesize = "2.2.0"
-chrono = "0.4.42"
 aws-smithy-types-convert = { version = "0.60.10", features = ["convert-chrono"] }
 tui-textarea = "0.7.0"
